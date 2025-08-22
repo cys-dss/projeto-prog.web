@@ -1,3 +1,5 @@
+package com.prog.web.fatec.api_fatec.entities;
+
 public class Cliente {
     private Long id;
    
