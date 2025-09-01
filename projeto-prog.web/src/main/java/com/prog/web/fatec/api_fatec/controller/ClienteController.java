@@ -1,95 +1,68 @@
 package com.prog.web.fatec.api_fatec.controller;
- 
-import java.util.*;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 import com.prog.web.fatec.api_fatec.domain.cliente.ClienteRepository;
 import com.prog.web.fatec.api_fatec.entities.Cliente;
-
 import jakarta.annotation.PostConstruct;
- 
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/clientes")
 public class ClienteController {
-    
-    private final List<Cliente> listaDeCliente = new ArrayList<>();
 
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private final ClienteRepository clienteRepository;
 
-    public ClienteController() {
- 
-        
-        listaDeCliente.add(new Cliente(1L, "Cayos", "Rua Lacre"));
+    public ClienteController(ClienteRepository clienteRepository) {
+        this.clienteRepository = clienteRepository;
     }
 
-    @PostConstruct()
+    // Opcional: carga inicial na H2
+    @PostConstruct
     public void dadosIniciais() {
-        clienteRepository.save(new Cliente(null, "Jesus", "Rua Céu"));
-        clienteRepository.save(new Cliente(null, "Socorro", "Rua Help"));
-        clienteRepository.save(new Cliente(null, "Peido", "Rua Bufa"));
+        if (clienteRepository.count() == 0) {
+            clienteRepository.save(new Cliente(null, "Jesus", "Rua Céu"));
+            clienteRepository.save(new Cliente(null, "Socorro", "Rua Help"));
+            clienteRepository.save(new Cliente(null, "Peido", "Rua Bufa"));
+        }
     }
 
-    @GetMapping("/listarClientes")
-    public List<Cliente> listarClientes() {
+    // CREATE
+    @PostMapping
+    public Cliente criar(@RequestBody Cliente cliente) {
+        return clienteRepository.save(cliente);
+    }
+
+    // READ - listar todos
+    @GetMapping
+    public List<Cliente> listar() {
         return clienteRepository.findAll();
     }
-    
 
-    @GetMapping("/testeCliente1") //-> /api/clientes/testeCliente1
-    public String testeCliente() {
-        return "Teste Client";
+    // READ - por id
+    @GetMapping("/{id}")
+    public Cliente buscar(@PathVariable Long id) {
+        return clienteRepository.findById(id).orElse(null);
     }
 
-    @GetMapping("/testeCliente2/{nome}") //-> /api/clientes/testeCliente2/
-    public String testeCliente2(@PathVariable String nome) {
-        return nome;
-    }
-
-    @PostMapping("")
-    public Cliente createCliente(@RequestBody Cliente cliente) {
-
-        listaDeCliente.add(cliente);
-
-        return cliente;
-    }
-
-    @DeleteMapping("/{id}")
-    public String deletarCliente(@PathVariable Long id) {
-        
-        for (Cliente cliente: listaDeCliente) {
-                if (cliente.getId() == id) {
-                    listaDeCliente.remove(cliente);
-                    return "OK";
-                }
-        }
-
-        return "ID NÃO ENCONTRADO:"+id;
-    }
-
+    // UPDATE
     @PutMapping("/{id}")
-    public String alterarCliente(@PathVariable Long id, @RequestBody Cliente entity) {
-        
-         for (Cliente cliente: listaDeCliente) {
-                if (cliente.getId() == id) {
-                    cliente.setId(id);
-                    cliente.setNome(entity.getNome());
-                    return "ENCONTROU";
-                }
-        }
-
-        return "ID NÃO ENCONTRADO:"+id;    
+    public Cliente atualizar(@PathVariable Long id, @RequestBody Cliente dto) {
+        return clienteRepository.findById(id)
+                .map(existente -> {
+                    existente.setNome(dto.getNome());
+                    existente.setEndereco(dto.getEndereco());
+                    return clienteRepository.save(existente);
+                })
+                .orElse(null);
     }
-    
-}
- 
 
+    // DELETE
+    @DeleteMapping("/{id}")
+    public void remover(@PathVariable Long id) {
+        if (clienteRepository.existsById(id)) {
+            clienteRepository.deleteById(id);
+        }
+    }
+
+}
